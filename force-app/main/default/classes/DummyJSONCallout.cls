@@ -33,29 +33,46 @@ public with sharing class DummyJSONCallout {
      * Documentation: https://dummyjson.com/docs/users
 	 * This callout method should work in triggers
 	 * 
-     * @param dummyUserId The ID of the user in the external system to fetch data for.
+     * @param dummyUserIds The IDs of the users in the external system to fetch data for.
      */
 	@future(callout=true)
-	public static void getDummyJSONUserFromId(String dummyUserId) {
-		// Create HTTP request to send.
-		HttpRequest request = new HttpRequest();
-		// Set the endpoint URL. Use direct URL or for best practices use Named Credential.
-		request.setEndpoint(BASE_URL + '/' + dummyUserId);
-		// Set the HTTP method to GET.
-		request.setMethod('GET');
-		// Send the HTTP request and get the response.
-		Http http = new Http();
-		HttpResponse response = http.send(request);
-		// If the HTTP response code is successful, parse the JSON response and update the contact.
-		if(response.getStatusCode() == 200){
-			Contact contact = createContactFromJson(response.getBody());
-			// Validate CRUS permission
-			if(isContactUpserteable()){
-				upsert as user contact DummyJSON_Id__c; //insert/update from the JSON response using the external id (dummyUserId)
+	public static void getDummyJSONUserFromIds(Set<String> dummyUserIds) { // Using sets to avoid potential duplicates
+		try{
+			List<Contact> contacts = new List<Contact>();
+			for(String dummyUserId:dummyUserIds){
+				// Create HTTP request to send.
+				HttpRequest request = new HttpRequest();
+				// Set the endpoint URL. Use direct URL or for best practices use Named Credential.
+				request.setEndpoint(BASE_URL + '/' + dummyUserId);
+				// Set the HTTP method to GET.
+				request.setMethod('GET');
+				// Send the HTTP request and get the response.
+				Http http = new Http();
+				HttpResponse response = http.send(request);
+				// If the HTTP response code is successful, parse the JSON response and update the contact.
+				if(response.getStatusCode() == 200){
+					Contact contact = createContactFromJson(response.getBody());
+					// Validate CRUS permission
+					if(isContactUpserteable()){
+						contacts.add(contact);
+					}
+				}
+				else{
+					throw new DummyJSONException(response.getStatus());
+				}
 			}
-			return;
+			upsert as user contacts DummyJSON_Id__c; //insert/update from the JSON response using the external id (dummyUserId)
 		}
-		throw new DummyJSONException(response.getStatus());
+		catch(Exception e){
+			// Logging errors to log object
+			Custom_Log__c log = new Custom_Log__c();
+			log.Message__c = e.getMessage();
+			log.Log_Level__c = 'Error';
+			log.Stack_Trace__c = e.getStackTraceString();
+			if(Schema.SObjectType.Custom_Log__c.isCreateable()){
+				insert as user log;
+			}
+		}
 	}
 
 	/* 
@@ -117,42 +134,60 @@ public with sharing class DummyJSONCallout {
 	 * 
      * Documentation: https://dummyjson.com/docs/users
      * 
-     * @param contactId The Salesforce Contact ID used to generate the JSON payload for the external system.
+     * @param contactIds The Salesforce Contact IDs used to generate the JSON payload for the external system.
      */
 	
 	@future(callout=true)
-	public static void postCreateDummyJSONUser(String contactId) {
-		// Create HTTP request to send.
-		HttpRequest request = new HttpRequest();
-		// Set the endpoint URL. Use direct URL or for best practices use Named Credential.
-		request.setEndpoint(BASE_URL + '/add');
-		// Set the HTTP method to POST.
-		request.setMethod('POST');
-		// Set the body using generateDummyJsonUserPayload method.
-		request.setBody(generateDummyJsonUserPayload(contactId));
-		// Send the HTTP request and get the response.
-		Http http = new Http();
-		HttpResponse response = http.send(request);
-		// If the HTTP response code is successful, update the contact.
-		Integer responseStatusCode = response.getStatusCode();
-		if(responseStatusCode > 199 && responseStatusCode < 300){
-			Contact contact = [
+	public static void postCreateDummyJSONUsers(Set<String> contactIds) { // Using sets to avoid potential duplicates
+		try{
+			List<Contact> updatedContacts = new List<Contact>();
+
+			List<Contact> contacts = [
 				SELECT DummyJSON_Last_Updated__c 
 				FROM Contact 
-				WHERE Id = :contactId 
+				WHERE Id = :contactIds 
 				WITH USER_MODE
 			];
-			contact.DummyJSON_Last_Updated__c = System.now();
 
+			for(Contact contact:contacts){
+				// Create HTTP request to send.
+				HttpRequest request = new HttpRequest();
+				// Set the endpoint URL. Use direct URL or for best practices use Named Credential.
+				request.setEndpoint(BASE_URL + '/add');
+				// Set the HTTP method to POST.
+				request.setMethod('POST');
+				// Set the body using generateDummyJsonUserPayload method.
+				request.setBody(generateDummyJsonUserPayload(contact.Id));
+				// Send the HTTP request and get the response.
+				Http http = new Http();
+				HttpResponse response = http.send(request);
+				// If the HTTP response code is successful, update the contact.
+				Integer responseStatusCode = response.getStatusCode();
+				if(responseStatusCode > 199 && responseStatusCode < 300){
+					contact.DummyJSON_Last_Updated__c = System.now();
+					updatedContacts.add(contact);
+				}
+				else{
+					throw new DummyJSONException(response.getStatus());
+				}
+			}
 			if(
 				Schema.SObjectType.Contact.isUpdateable() && 
 				Schema.SObjectType.Contact.fields.DummyJSON_Last_Updated__c.isUpdateable()
 			){
-				update as user contact;
+				update as user updatedContacts;
 			}
-			return;
 		}
-		throw new DummyJSONException(response.getStatus());
+		catch(Exception e){
+			// Logging errors to log object
+			Custom_Log__c log = new Custom_Log__c();
+			log.Message__c = e.getMessage();
+			log.Log_Level__c = 'Error';
+			log.Stack_Trace__c = e.getStackTraceString();
+			if(Schema.SObjectType.Custom_Log__c.isCreateable()){
+				insert as user log;
+			}
+		}
 	}
 
 	/*

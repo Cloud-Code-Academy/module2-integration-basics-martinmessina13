@@ -22,7 +22,7 @@ trigger ContactTrigger on Contact(before insert, after insert, before update) {
 	ContactTriggerHandler.generateDummyJSONId(Trigger.new, Trigger.isInsert, Trigger.isBefore);
 	//When a contact is inserted
 	// if DummyJSON_Id__c is less than or equal to 100, call the getDummyJSONUserFromId API
-	ContactTriggerHandler.callGetDummyJSONUserFromId(Trigger.new, Trigger.isInsert, Trigger.isBefore);
+	ContactTriggerHandler.callGetDummyJSONUserFromId(Trigger.new, Trigger.isInsert, Trigger.isAfter);
 	//When a contact is updated
 	// if DummyJSON_Id__c is greater than 100, call the postCreateDummyJSONUser API
 	ContactTriggerHandler.callPostCreateDummyJSONUser(Trigger.new, Trigger.isUpdate);

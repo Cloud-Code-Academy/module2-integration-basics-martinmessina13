@@ -15,7 +15,7 @@ public with sharing class DummyJSONCalloutTest {
 
 		// As this is a future method, we need to enclose it in Test.startTest() and Test.stopTest() to ensure it's executed in the test context.
 		Test.startTest();
-		DummyJSONCallout.getDummyJSONUserFromId('1'); // Call the method with an example userId
+		DummyJSONCallout.getDummyJSONUserFromIds(new Set<String>{'1'}); // Call the method with an example userId
 		Test.stopTest();
 
 		// After the stopTest, the future method will have run. Now we can check if the contact was created correctly.
@@ -72,7 +72,7 @@ public with sharing class DummyJSONCalloutTest {
 
 		// As this is a future method, we need to enclose it in Test.startTest() and Test.stopTest() to ensure it's executed in the test context.
 		Test.startTest();
-		DummyJSONCallout.postCreateDummyJSONUser(testContact.Id);
+		DummyJSONCallout.postCreateDummyJSONUsers(new Set<String>{testContact.Id});
 		Test.stopTest();
 
 		// Retrieve the updated contact to verify the changes
@@ -195,7 +195,7 @@ public with sharing class DummyJSONCalloutTest {
 
 		// Execute the future method within test context
 		Test.startTest();
-		DummyJSONCallout.postCreateDummyJSONUser(cont.Id);
+		DummyJSONCallout.postCreateDummyJSONUsers(new Set<String>{cont.Id});
 		Test.stopTest();
 
 		// Query the contact after the callout
@@ -212,5 +212,84 @@ public with sharing class DummyJSONCalloutTest {
 			'DummyJSON_Last_Updated__c should be set after successful callout'
 		);
 		System.assertEquals('1', updatedContact.DummyJSON_Id__c, 'DummyJSON_Id__c should remain unchanged');
+	}
+
+	/*
+	================================================================================
+	|                  EXCEPTION HANDLING AND SAD PATH TESTS                       |
+	================================================================================
+	| The following tests use the enhanced DummyJSONCalloutMockGenerator to        |
+	| validate the error handling paths of the DummyJSONCallout class.             |
+	--------------------------------------------------------------------------------
+	*/
+
+	@IsTest
+	static void testGetDummyUser_HttpError() {
+		// Test Goal: Verify that a non-200 HTTP response in getDummyJSONUserFromIds
+		// is caught and logged correctly.
+		Test.startTest();
+
+		// Configure the mock to return an HTTP 404 Not Found error
+		HttpCalloutMock errorMock = new DummyJSONCalloutMockGenerator(404, 'Not Found', '{"message":"User not found"}');
+		Test.setMock(HttpCalloutMock.class, errorMock);
+
+		// Call the method that performs the callout
+		DummyJSONCallout.getDummyJSONUserFromIds(new Set<String>{'999'});
+
+		Test.stopTest();
+
+		// Verify that a log record was created due to the error
+		List<Custom_Log__c> logs = [SELECT Message__c, Log_Level__c FROM Custom_Log__c];
+		System.assertEquals(1, logs.size(), 'An error log should have been created.');
+		System.assertEquals('Error', logs[0].Log_Level__c, 'Log level should be Error.');
+		System.assert(logs[0].Message__c.contains('Not Found'), 'Log message should contain the HTTP status.');
+	}
+
+	@IsTest
+	static void testGetDummyUser_CalloutException() {
+		// Test Goal: Verify that a system CalloutException is caught and logged.
+		Test.startTest();
+
+		// Configure the mock to throw a CalloutException
+		HttpCalloutMock exceptionMock = new DummyJSONCalloutMockGenerator(true);
+		Test.setMock(HttpCalloutMock.class, exceptionMock);
+
+		// Call the method that performs the callout
+		DummyJSONCallout.getDummyJSONUserFromIds(new Set<String>{'1'});
+
+		Test.stopTest();
+
+		// Verify that the exception was caught and logged
+		List<Custom_Log__c> logs = [SELECT Message__c, Log_Level__c FROM Custom_Log__c];
+		System.assertEquals(1, logs.size(), 'An error log should have been created for the CalloutException.');
+		System.assert(logs[0].Message__c.contains('Mock callout exception'), 'Log message should contain the exception details.');
+	}
+
+	@IsTest
+	static void testPostDummyUser_HttpError() {
+		// Test Goal: Verify that a non-2xx HTTP response in postCreateDummyJSONUsers
+		// is caught and logged correctly.
+		Contact testContact = new Contact(FirstName='Test', LastName='User', Email='test@test.com', Phone='111');
+		insert testContact;
+
+		Test.startTest();
+
+		// Configure the mock to return an HTTP 500 Internal Server Error
+		HttpCalloutMock errorMock = new DummyJSONCalloutMockGenerator(500, 'Server Error', '{"message":"Server exploded"}');
+		Test.setMock(HttpCalloutMock.class, errorMock);
+
+		// Call the method that performs the callout
+		DummyJSONCallout.postCreateDummyJSONUsers(new Set<String>{testContact.Id});
+
+		Test.stopTest();
+
+		// Verify that a log record was created
+		List<Custom_Log__c> logs = [SELECT Message__c FROM Custom_Log__c];
+		System.assertEquals(2, logs.size(), 'Two error logs should have been created.');
+		System.assert(logs[0].Message__c.contains('Server Error'), 'Log message should contain the HTTP status.');
+
+		// Verify the contact was not updated on failure
+		Contact resultContact = [SELECT DummyJSON_Last_Updated__c FROM Contact WHERE Id = :testContact.Id];
+		System.assertEquals(null, resultContact.DummyJSON_Last_Updated__c, 'Last updated date should not be set on failure.');
 	}
 }

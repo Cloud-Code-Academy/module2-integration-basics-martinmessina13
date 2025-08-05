@@ -39,16 +39,19 @@ public with sharing class ContactTriggerHandler {
      *
      * @param contacts List of Contact records to process.
      * @param isInsert context variable that indicates whether in insert context.
-     * @param isBefore context variable that indicates whether in before trigger context.
+     * @param isAfter context variable that indicates whether in after trigger context.
      * @return void
      */
-    public static void callGetDummyJSONUserFromId(List<Contact> contacts, Boolean isInsert, Boolean isBefore){
-        if(isInsert && !isBefore && !System.isFuture()){ // Avoiding re-running trigger without the use of static variables
+    public static void callGetDummyJSONUserFromId(List<Contact> contacts, Boolean isInsert, Boolean isAfter){
+        if(isInsert && isAfter && !System.isFuture()){ // Avoiding re-running trigger without the use of static variables
+            Set<String> dummyIds = new Set<String>();
             for(Contact contact:contacts){
-                // Only process contacts where DummyJSON_Id__c is less than or equal to 100
-                if(Integer.valueOf(contact.DummyJSON_Id__c) < 101){
-                    DummyJSONCallout.getDummyJSONUserFromId(contact.DummyJSON_Id__c);
+                if(contact.DummyJSON_Id__c != null && Integer.valueOf(contact.DummyJSON_Id__c) < 101){
+                    dummyIds.add(contact.DummyJSON_Id__c);
                 }
+            }
+            if(!dummyIds.isEmpty()){
+                    DummyJSONCallout.getDummyJSONUserFromIds(dummyIds);
             }
         }
     }
@@ -66,11 +69,16 @@ public with sharing class ContactTriggerHandler {
      */
     public static void callPostCreateDummyJSONUser(List<Contact> contacts, Boolean isUpdate){
         if(isUpdate){
+            Set<String> dummyIds = new Set<String>();
             for(Contact contact:contacts){
                 // Only process contacts where DummyJSON_Id__c is greater than 100
-                if(Integer.valueOf(contact.DummyJSON_Id__c) > 100){
-                    DummyJSONCallout.postCreateDummyJSONUser(contact.Id);
+                if(contact.DummyJSON_Id__c != null && Integer.valueOf(contact.DummyJSON_Id__c) > 100){
+                    dummyIds.add(contact.Id);
                 }
+            }
+
+            if(!dummyIds.isEmpty()){
+                DummyJSONCallout.postCreateDummyJSONUsers(dummyIds);
             }
         }
     }
