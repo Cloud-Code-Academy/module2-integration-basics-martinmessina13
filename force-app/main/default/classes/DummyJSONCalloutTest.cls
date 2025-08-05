@@ -292,4 +292,74 @@ public with sharing class DummyJSONCalloutTest {
 		Contact resultContact = [SELECT DummyJSON_Last_Updated__c FROM Contact WHERE Id = :testContact.Id];
 		System.assertEquals(null, resultContact.DummyJSON_Last_Updated__c, 'Last updated date should not be set on failure.');
 	}
+
+	/**
+	 * @description Tests that a DummyJSONException is thrown when a Contact is missing an email.
+	 */
+	@IsTest
+	static void testGeneratePayload_ThrowsExceptionForMissingEmail() {
+		// Arrange: Create a contact with a name and phone, but no email.
+		Contact contactWithoutEmail = new Contact(
+			FirstName = 'No',
+			LastName = 'Email',
+			Phone = '555-5678'
+		);
+		insert contactWithoutEmail;
+
+		// Act & Assert
+		try {
+			DummyJSONCallout.generateDummyJsonUserPayload(contactWithoutEmail.Id);
+			System.assert(false, 'Expected a DummyJSONException for a contact with no email.');
+		} catch (DummyJSONCallout.DummyJSONException e) {
+			// Assert that the correct exception was caught.
+			System.assertEquals('Contact does not have an associated email address', e.getMessage(), 'Incorrect exception message for missing email.');
+		}
+	}
+
+	/**
+	 * @description Tests that a DummyJSONException is thrown when a Contact is missing a phone number.
+	 */
+	@IsTest
+	static void testGeneratePayload_ThrowsExceptionForMissingPhone() {
+		// Arrange: Create a contact with a name and email, but no phone.
+		Contact contactWithoutPhone = new Contact(
+			FirstName = 'No',
+			LastName = 'Phone',
+			Email = 'nophone@example.com'
+		);
+		insert contactWithoutPhone;
+
+		// Act & Assert
+		try {
+			DummyJSONCallout.generateDummyJsonUserPayload(contactWithoutPhone.Id);
+			System.assert(false, 'Expected a DummyJSONException for a contact with no phone.');
+		} catch (DummyJSONCallout.DummyJSONException e) {
+			// Assert that the correct exception was caught.
+			System.assertEquals('Contact does not have a phone number', e.getMessage(), 'Incorrect exception message for missing phone.');
+		}
+	}
+
+	/**
+	 * @description This test validates the actual behavior when a Contact ID does not exist.
+	 * NOTE: The `if(contact == null)` check in the code is unreachable because a direct SOQL
+	 * assignment `Contact c = [SELECT...];` will throw a System.QueryException if no record
+	 * is found, stopping execution before the null check. This test confirms that behavior.
+	 */
+	@IsTest
+	static void testGeneratePayload_ThrowsQueryExceptionForNotFoundContact() {
+		// Arrange: Get a validly formatted but non-existent Contact ID.
+		// The DummyId class needs to be created in your org, or you can use a hardcoded fake Id.
+		// A simple implementation of DummyId:
+		// public class DummyId { public static Id get(SObjectType s) { return ((SObject)Type.forName('Schema.'+s).newInstance()).getSObjectType().getDescribe().newSObject(null,true).Id; } }
+		Id nonExistentContactId = '003000000000000AAA';
+
+		// Act & Assert
+		try {
+			DummyJSONCallout.generateDummyJsonUserPayload(nonExistentContactId);
+			System.assert(false, 'Expected a QueryException for a non-existent Contact ID.');
+		} catch (System.QueryException e) {
+			// Assert that the expected system exception was thrown.
+			System.assert(e.getMessage().contains('List has no rows for assignment to SObject'), 'The QueryException message is incorrect.');
+		}
+	}
 }

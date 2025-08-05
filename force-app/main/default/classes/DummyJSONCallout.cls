@@ -227,10 +227,6 @@ public with sharing class DummyJSONCallout {
 			'email' => contact.Email != null ? contact.Email : 'Unknown', 
 			'phone' => contact.Phone != null ? contact.Phone : 'Unknown'
 		};
-		// Integration data can change over time. It is a best practice to add safeguards/validation to ensure the integration does not break.
-		if(String.isBlank(contact.FirstName) && String.isBlank(contact.LastName)){
-			throw new DummyJSONException('Contact Name is empty');
-		}
 		if(String.isBlank(contact.Email)){
 			throw new DummyJSONException('Contact does not have an associated email address');
 		}
@@ -258,5 +254,5 @@ public with sharing class DummyJSONCallout {
 			Schema.SObjectType.Contact.fields.MailingCountry.isCreateable() && Schema.SObjectType.Contact.fields.MailingCountry.isUpdateable();
 	}
 
-	private class DummyJSONException extends Exception{}
+	public class DummyJSONException extends Exception{}
 }
