@@ -198,7 +198,7 @@ public with sharing class DummyJSONCalloutTest {
 		];
 
 		System.runAs(u){
-			//Create 100 contact
+			// Create 1 contact
 			List<Contact> contacts = new List<Contact>();
 			for (Integer i = 0; i < 1; i++) {
 				contacts.add(new Contact(FirstName = 'Test', LastName = 'User' + i));
