@@ -99,7 +99,7 @@ public with sharing class DummyJSONCalloutTest {
 		insert testContact;
 
 		// Call the method
-		String payload = DummyJSONCallout.generateDummyJsonUserPayload(testContact.Id);
+		String payload = DummyJSONCallout.generateDummyJsonUserPayload(testContact);
 
 		// Parse the generated JSON
 		Map<String, Object> payloadMap = (Map<String, Object>) JSON.deserializeUntyped(payload);
@@ -308,7 +308,7 @@ public with sharing class DummyJSONCalloutTest {
 
 		// Act & Assert
 		try {
-			DummyJSONCallout.generateDummyJsonUserPayload(contactWithoutEmail.Id);
+			DummyJSONCallout.generateDummyJsonUserPayload(contactWithoutEmail);
 			System.assert(false, 'Expected a DummyJSONException for a contact with no email.');
 		} catch (DummyJSONCallout.DummyJSONException e) {
 			// Assert that the correct exception was caught.
@@ -331,7 +331,7 @@ public with sharing class DummyJSONCalloutTest {
 
 		// Act & Assert
 		try {
-			DummyJSONCallout.generateDummyJsonUserPayload(contactWithoutPhone.Id);
+			DummyJSONCallout.generateDummyJsonUserPayload(contactWithoutPhone);
 			System.assert(false, 'Expected a DummyJSONException for a contact with no phone.');
 		} catch (DummyJSONCallout.DummyJSONException e) {
 			// Assert that the correct exception was caught.

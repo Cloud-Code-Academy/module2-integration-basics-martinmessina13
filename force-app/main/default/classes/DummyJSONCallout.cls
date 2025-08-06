@@ -127,12 +127,14 @@ public with sharing class DummyJSONCallout {
 		// Deserialize the address from the JSON response.
 		Map<String, Object> address = (Map<String, Object>)contactResponse.get('address'); 
 
-		// Set the address fields on the contact.
-		contact.MailingStreet = (String)address.get('address');
-		contact.MailingCity = (String)address.get('city');
-		contact.MailingPostalCode = (String)address.get('postalCode');
-		contact.MailingState = (String)address.get('state');
-		contact.MailingCountry = (String)address.get('country');
+		if(address != null) {
+		    // Set the address fields on the contact.
+		    contact.MailingStreet = (String)address.get('address');
+		    contact.MailingCity = (String)address.get('city');
+		    contact.MailingPostalCode = (String)address.get('postalCode');
+		    contact.MailingState = (String)address.get('state');
+		    contact.MailingCountry = (String)address.get('country');
+		}
 
 		return contact;
 	}
@@ -157,7 +159,7 @@ public with sharing class DummyJSONCallout {
 			List<Contact> updatedContacts = new List<Contact>();
 
 			List<Contact> contacts = [
-				SELECT DummyJSON_Last_Updated__c 
+				SELECT Id, FirstName, LastName, Email, Phone, DummyJSON_Last_Updated__c
 				FROM Contact 
 				WHERE Id = :contactIds 
 				WITH USER_MODE
@@ -171,7 +173,7 @@ public with sharing class DummyJSONCallout {
 				// Set the HTTP method to POST.
 				request.setMethod('POST');
 				// Set the body using generateDummyJsonUserPayload method.
-				request.setBody(generateDummyJsonUserPayload(contact.Id));
+				request.setBody(generateDummyJsonUserPayload(contact));
 				// Send the HTTP request and get the response.
 				Http http = new Http();
 				HttpResponse response = http.send(request);
@@ -220,19 +222,19 @@ public with sharing class DummyJSONCallout {
      * @return String The JSON string payload that represents the Contact's details.
      */
 	@TestVisible // Allows test class to see this method. Since it is private, it would not be visible otherwise.
-	private static String generateDummyJsonUserPayload(String contactId) {
-		// Query the contact to get the field values to generate the JSON payload.
-		List<Contact> contacts = [ 
-			SELECT Id, FirstName, LastName, Email, Phone 
-			FROM Contact WHERE 
-			Id = : contactId
-			WITH USER_MODE
-		];
+	private static String generateDummyJsonUserPayload(Contact contact) {
+		// // Query the contact to get the field values to generate the JSON payload.
+		// List<Contact> contacts = [ 
+		// 	SELECT Id, FirstName, LastName, Email, Phone 
+		// 	FROM Contact WHERE 
+		// 	Id = : contactId
+		// 	WITH USER_MODE
+		// ];
 
-		if(contacts.isEmpty()){
-			throw new DummyJSONException('Contact not found with ID: ' + contactId);
-		}
-		Contact contact = contacts[0];
+		// if(contacts.isEmpty()){
+		// 	throw new DummyJSONException('Contact not found with ID: ' + contactId);
+		// }
+		// Contact contact = contacts[0];
 
 		// Create a map of the field values.
 		Map<String, String> contactMap = new Map<String, String>{
