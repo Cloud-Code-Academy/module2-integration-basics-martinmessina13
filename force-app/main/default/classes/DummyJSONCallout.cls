@@ -107,7 +107,15 @@ public with sharing class DummyJSONCallout {
 
 		contact.Email = (String)contactResponse.get('email');
 		contact.Phone = (String)contactResponse.get('phone');
-		contact.Birthdate = Date.valueOf((String)contactResponse.get('birthDate'));
+		String birthDateStr = (String)contactResponse.get('birthDate');
+		if(String.isNotBlank(birthDateStr)){
+			try {
+				contact.Birthdate = Date.valueOf(birthDateStr);
+			} catch(Exception e) {
+				// Log error or set to null
+				System.debug('Invalid birthdate format: ' + birthDateStr);
+			}
+		}
 		contact.DummyJSON_Id__c = String.valueOf((Integer)contactResponse.get('id')); // casting to String
 		
 		// Deserialize the address from the JSON response.
@@ -208,24 +216,25 @@ public with sharing class DummyJSONCallout {
 	@TestVisible // Allows test class to see this method. Since it is private, it would not be visible otherwise.
 	private static String generateDummyJsonUserPayload(String contactId) {
 		// Query the contact to get the field values to generate the JSON payload.
-		Contact contact = [ 
+		List<Contact> contacts = [ 
 			SELECT Id, FirstName, LastName, Email, Phone 
 			FROM Contact WHERE 
 			Id = : contactId
 			WITH USER_MODE
 		];
 
-		if(contact == null){
+		if(contacts.isEmpty()){
 			throw new DummyJSONException('Contact not found with ID: ' + contactId);
 		}
+		Contact contact = contacts[0];
 
 		// Create a map of the field values.
 		Map<String, String> contactMap = new Map<String, String>{
 			'salesforceId' => contact.Id, 
-			'firstName' => contact.FirstName != null ? contact.FirstName : 'Unknown', // Make sure to check that required contacts fields have a value. Default the value to unknown if it does not exists.
-			'lastName' => contact.LastName != null ? contact.LastName : 'Unknown', 
-			'email' => contact.Email != null ? contact.Email : 'Unknown', 
-			'phone' => contact.Phone != null ? contact.Phone : 'Unknown'
+			'firstName' => contact.FirstName != null && contact.FirstName != '' ? contact.FirstName : 'Unknown', // Make sure to check that required contacts fields have a value. Default the value to unknown if it does not exists.
+			'lastName' => contact.LastName != null && contact.LastName != '' ? contact.LastName : 'Unknown', 
+			'email' => contact.Email, 
+			'phone' => contact.Phone
 		};
 		if(String.isBlank(contact.Email)){
 			throw new DummyJSONException('Contact does not have an associated email address');
