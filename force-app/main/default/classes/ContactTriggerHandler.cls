@@ -68,7 +68,7 @@ public with sharing class ContactTriggerHandler {
      * @return void
      */
     public static void callPostCreateDummyJSONUser(List<Contact> contacts, Boolean isUpdate){
-        if(isUpdate){
+        if(isUpdate && !System.isFuture()){ // Avoiding re-running trigger without the use of static variables
             Set<String> dummyIds = new Set<String>();
             for(Contact contact:contacts){
                 // Only process contacts where DummyJSON_Id__c is greater than 100

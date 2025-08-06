@@ -218,7 +218,7 @@ public with sharing class DummyJSONCallout {
 	 * 
      * Documentation: https://dummyjson.com/docs/users
      * 
-     * @param String contactId The Salesforce Contact ID used to fetch the contact's fields and generate the JSON payload.
+     * @param Contact contact The Salesforce Contact used to generate the JSON payload.
      * @return String The JSON string payload that represents the Contact's details.
      */
 	@TestVisible // Allows test class to see this method. Since it is private, it would not be visible otherwise.
