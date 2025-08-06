@@ -9,4 +9,4 @@
 // System.debug('Hello World!');
 // System.debug('My name is ' + tempvar);
 
-DummyJSONCallout.getDummyJSONUserFromId('5');
+DummyJSONCallout.getDummyJSONUserFromIds(new Set<String>{'5'});

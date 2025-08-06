@@ -15,7 +15,7 @@ public with sharing class DummyJSONCalloutTest {
 			Alias = 'tuser',
 			Email = 'test.user@example.com',
 			Username = 'test.user' + DateTime.now().getTime() + '@example.com',
-			ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
+			ProfileId = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1].Id,
 			TimeZoneSidKey = 'America/New_York',
 			LocaleSidKey = 'en_US',
 			EmailEncodingKey = 'UTF-8',
