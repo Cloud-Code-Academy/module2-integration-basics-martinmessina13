@@ -113,7 +113,13 @@ public with sharing class DummyJSONCallout {
 				contact.Birthdate = Date.valueOf(birthDateStr);
 			} catch(Exception e) {
 				// Log error or set to null
-				System.debug('Invalid birthdate format: ' + birthDateStr);
+				Custom_Log__c log = new Custom_Log__c();
+				log.Message__c = e.getMessage();
+				log.Log_Level__c = 'Error';
+				log.Stack_Trace__c = e.getStackTraceString();
+				if(Schema.SObjectType.Custom_Log__c.isCreateable()){
+					insert as user log;
+				}
 			}
 		}
 		contact.DummyJSON_Id__c = String.valueOf((Integer)contactResponse.get('id')); // casting to String
