@@ -1,6 +1,7 @@
 /*
  * Update the ContactTrigger.trigger to do a callout to the DummyJSONCallout class to retrieve/send user data from the Dummy JSON API.
  * Implement the DummyJSONCallout class to handle the callouts to the Dummy JSON API.
+ * 
  */
 @IsTest
 public with sharing class DummyJSONCalloutTest {
